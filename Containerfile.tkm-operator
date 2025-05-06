@@ -1,0 +1,40 @@
+# Build the manager binary
+ARG BUILDPLATFORM
+
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.23 AS tkm-build
+
+# The following ARGs are set internally by docker/build-push-action in github actions
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETPLATFORM
+
+ARG BUILDPLATFORM
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
+
+WORKDIR /usr/src/tkm
+
+# Copy everything except what's excluded by the .dockerignore file.
+COPY . .
+
+RUN ls -al
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-linux/amd64} go build -mod vendor -o bin/tkm-operator ./cmd/tkm-operator/main.go
+
+
+# Use the fedora minimal image to reduce the size of the final image but still
+# be able to easily install extra packages.
+FROM quay.io/fedora/fedora-minimal
+
+# The full fedora image can be used for debugging purposes.  To use it, comment
+# out the FROM and ARG lines above and uncomment the FROM and ARG lines below.
+# FROM fedora:38
+# ARG DNF_CMD="dnf"
+
+ARG TARGETARCH
+ARG TARGETPLATFORM
+
+WORKDIR /
+COPY --from=tkm-build /usr/src/tkm/bin/tkm-operator .
+COPY --from=tkm-build /usr/src/tkm/config/bpfman-operator/csi-driver-info.yaml ./config/bpfman-operator/csi-driver-info.yaml
+
+ENTRYPOINT ["/tkm-operator"]

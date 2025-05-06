@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tkm-daemon
+  namespace: tkm
+  labels:
+    k8s-app: tkm
+spec:
+  selector:
+    matchLabels:
+      name: tkm-daemon
+  template:
+    metadata:
+      labels:
+        name: tkm-daemon
+    spec:
+      hostNetwork: false
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      # Specify FS group so that the agent can use the tkm socket
+      # without needing to be root.
+      securityContext:
+        fsGroup: 2000
+      containers:
+        - name: node-driver-registrar
+          image: quay.io/bpfman/csi-node-driver-registrar:v2.13.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - --v=5
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-tkm/csi.sock
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /csi
+            - name: registration-dir
+              mountPath: /registration
+        - name: tkm-agent
+          image: quay.io/billy99/tkm-agent:latest
+          imagePullPolicy: IfNotPresent
+      terminationGracePeriodSeconds: 15
+      volumes:
+        # This volume is where the socket for kubelet->driver communication is held
+        - name: socket-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/csi-tkm
+            type: DirectoryOrCreate
+        # This volume is where the node-driver-registrar registers the plugin
+        # with kubelet
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry
+            type: Directory
