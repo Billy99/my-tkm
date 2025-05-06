@@ -19,7 +19,7 @@ package tkmoperator
 import (
 	"context"
 
-	tkmv1alpha1 "github.com/redhat-et/TKM/api/v1alpha1"
+	tkmv1alpha1 "github.com/billy99/my-tkm/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

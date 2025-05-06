@@ -1,4 +1,4 @@
-module my-tkm
+module github/billy99/my-tkm
 
 go 1.24.0
 
