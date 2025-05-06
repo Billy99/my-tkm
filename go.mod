@@ -1,4 +1,4 @@
-module cmd/tkm
+module my-tkm
 
 go 1.24.0
 
@@ -11,9 +11,6 @@ require (
 	k8s.io/client-go v0.33.0
 	sigs.k8s.io/controller-runtime v0.20.4
 )
-
-// replace github.com/billy99/my-tkm/api/v1alpha1 => ./api/v1alpha1
-// replace github.com/billy99/my-tkm/internal/controller/tkm-operator => ./internal/controller/tkm-operator
 
 require (
 	cel.dev/expr v0.18.0 // indirect
